@@ -9,6 +9,11 @@
 #include <imgui.h>
 #include <imguiThemes.h>
 
+#include "renderers/IRenderStrategy.h"
+#include "renderers/BatchRenderer.h"
+#include "renderers/InstancedRenderer.h"
+#include "renderers/NaiveRenderer.h"
+
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
 
@@ -29,7 +34,6 @@ int main() {
 #endif
 
   // glfw window creation
-  // --------------------
   GLFWwindow *window =
       glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GL-Bench", NULL, NULL);
   if (window == NULL) {
@@ -41,7 +45,6 @@ int main() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   // glad: load all OpenGL function pointers
-  // ---------------------------------------
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
     return -1;
