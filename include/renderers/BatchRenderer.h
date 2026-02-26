@@ -8,11 +8,11 @@ class Mesh;
 class BatchRenderer : public IRenderStrategy
 {
 public:
-    BatchRenderer();
-    ~BatchRenderer() override;
+    BatchRenderer() = default;
+    ~BatchRenderer() override = default;
 
     void Init() override;
-    void Render(int objectCount) override;
+    void Render(int objectCount, Camera& camera, GLFWwindow *window) override;
     void Cleanup() override;
 
     const char* GetName() const override { return "Batch"; }

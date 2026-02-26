@@ -4,15 +4,17 @@
 
 class Shader;
 class Mesh;
+class Camera;
+class GLFWwindow; 
 
 class InstancedRenderer : public IRenderStrategy
 {
 public:
-    InstancedRenderer();
-    ~InstancedRenderer() override;
+    InstancedRenderer() = default;
+    ~InstancedRenderer() override = default;
 
     void Init() override;
-    void Render(int objectCount) override;
+    void Render(int objectCount, Camera& camera, GLFWwindow *window) override;
     void Cleanup() override;
 
     const char* GetName() const override { return "Instance"; }
