@@ -113,7 +113,7 @@ void Cube::render(Camera &camera, GLFWwindow *window) {
   shader.use();
 
   glm::mat4 projection = glm::perspective(
-      glm::radians(camera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);
+      glm::radians(camera.Zoom), static_cast<float>(EngineConfig::WindowWidth) / static_cast<float>(EngineConfig::WindowHeight), 0.1f, 100.0f);
   glm::mat4 view = camera.GetViewMatrix();
 
   shader.setUniform("projection", projection);

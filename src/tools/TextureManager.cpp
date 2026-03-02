@@ -59,6 +59,7 @@ GLuint TextureLoader::loadTextureAdvanced(const std::string &path, GLint wrapS,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
+  std::cout << "Loaded " << path << " Texture\n";
 
   stbi_image_free(data);
   return texture;
