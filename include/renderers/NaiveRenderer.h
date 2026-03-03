@@ -1,6 +1,9 @@
 #pragma once
 
 #include "IRenderStrategy.h"
+#include <glm/fwd.hpp>
+#include <vector>
+#include "core/Cube.h"
 
 class Shader;
 class Mesh;
@@ -17,6 +20,8 @@ public:
   const char *GetName() const override { return "Naive"; }
 
 private:
+  Cube cube;
+  std::vector<glm::vec3> positions;
   Shader *shader;
   Mesh *mesh;
 

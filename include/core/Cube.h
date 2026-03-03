@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "Material.h"
 #include "Shader.h"
+#include "Material.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -23,9 +24,12 @@ public:
   void render(Camera &camera, GLFWwindow *window);
   ~Cube();
 
-private:
-  Shader shader;
   GLuint VAO, VBO, texture;
+  Shader shader;
+  Material material;
+private:
 };
+
+extern float cubeVertices[];
 
 #endif

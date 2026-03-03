@@ -1,7 +1,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
+#include <cmath>
+#include <fstream>
 #include <iostream>
+#include <numeric>
+#include <vector>
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -15,8 +20,8 @@
 
 // --------------------------------
 // Settings
-const unsigned int SCR_WIDTH = 1280;
-const unsigned int SCR_HEIGHT = 720;
+unsigned int SCR_WIDTH = 1920;
+unsigned int SCR_HEIGHT = 1080;
 
 // --------------------------------
 // Camera
@@ -30,6 +35,18 @@ float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 bool cursorEnabled = false;
 
+// --------------------------------
+// Performance Data
+std::vector<float> frameHistory;
+std::vector<float> cpuHistory;
+
+const int HISTORY_SIZE = 200;
+
+float avgFrame = 0.0f;
+float minFrame = 0.0f;
+float maxFrame = 0.0f;
+float stddevFrame = 0.0f;
+bool benchmarkMode = false;
 // --------------------------------
 // Forward declarations
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -47,10 +64,8 @@ int main() {
 
   GLFWwindow *window =
       glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GL-Bench", NULL, NULL);
-  if (!window) {
-    std::cout << "Failed to create window\n";
+  if (!window)
     return -1;
-  }
 
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -58,10 +73,8 @@ int main() {
   glfwSetScrollCallback(window, scroll_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    std::cout << "Failed to init GLAD\n";
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     return -1;
-  }
 
   glEnable(GL_DEPTH_TEST);
 
@@ -69,6 +82,9 @@ int main() {
   // Setup ImGui
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
+  ImGuiIO &io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // docking only
+
   ImGui::StyleColorsDark();
 
   ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -94,10 +110,12 @@ int main() {
 
   int objectCount = 100;
   bool vsync = false;
+  GLuint gpuQuery;
+  glGenQueries(1, &gpuQuery);
 
-  // --------------------------------
   // Render Loop
   while (!glfwWindowShouldClose(window)) {
+
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
@@ -107,14 +125,67 @@ int main() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Render scene
+    // CPU timing
+    double cpuStart = glfwGetTime();
     renderer->Render(objectCount, camera, window);
+    double cpuEnd = glfwGetTime();
+    float cpuMs = (cpuEnd - cpuStart) * 1000.0f;
+
+    float frameMs = deltaTime * 1000.0f;
+
+    frameHistory.push_back(frameMs);
+    cpuHistory.push_back(cpuMs);
+
+    if (frameHistory.size() > HISTORY_SIZE) {
+      frameHistory.erase(frameHistory.begin());
+      cpuHistory.erase(cpuHistory.begin());
+    }
+
+    // Stats
+    if (!frameHistory.empty()) {
+      float sum =
+          std::accumulate(frameHistory.begin(), frameHistory.end(), 0.0f);
+      avgFrame = sum / frameHistory.size();
+
+      minFrame = *std::min_element(frameHistory.begin(), frameHistory.end());
+      maxFrame = *std::max_element(frameHistory.begin(), frameHistory.end());
+
+      float variance = 0.0f;
+      for (float t : frameHistory)
+        variance += (t - avgFrame) * (t - avgFrame);
+
+      variance /= frameHistory.size();
+      stddevFrame = sqrt(variance);
+    }
 
     // ImGui Frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    ImGuiWindowFlags window_flags =
+        ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking |
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
+        ImGuiWindowFlags_NoBackground;
+
+    ImGuiViewport *viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->Pos);
+    ImGui::SetNextWindowSize(viewport->Size);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+    ImGui::Begin("MainDockSpace", nullptr, window_flags);
+    ImGui::PopStyleVar(2);
+
+    ImGuiID dockspace_id = ImGui::GetID("MainDockSpaceID");
+    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f),
+                     ImGuiDockNodeFlags_PassthruCentralNode);
+
+    ImGui::End();
     ImGui::Begin("Benchmark");
 
     ImGui::SliderInt("Object Count", &objectCount, 1, 50000);
@@ -127,13 +198,40 @@ int main() {
       renderer->Init();
     }
 
-    if (ImGui::Checkbox("VSync", &vsync)) {
+    if (ImGui::Checkbox("VSync", &vsync))
       glfwSwapInterval(vsync ? 1 : 0);
-    }
 
     ImGui::Separator();
-    ImGui::Text("FPS: %.1f", 1.0f / deltaTime);
-    ImGui::Text("Frame Time: %.3f ms", deltaTime * 1000.0f);
+
+    ImGui::Text("FPS: %.1f", 1000.0f / avgFrame);
+    ImGui::Text("Frame: %.3f ms", avgFrame);
+    ImGui::Text("Min: %.3f ms", minFrame);
+    ImGui::Text("Max: %.3f ms", maxFrame);
+    ImGui::Text("StdDev: %.3f ms", stddevFrame);
+    ImGui::Text("CPU Submit: %.3f ms", cpuMs);
+
+    if (ImGui::Button("Export CSV")) {
+      std::ofstream file("results.csv", std::ios::app);
+      file << rendererNames[currentRendererIndex]
+           << ", Object Count: " << objectCount << "\n"
+           << "Average Frames: " << avgFrame << "\n"
+           << "Minimum Frames: " << minFrame << "\n"
+           << "Max Frames: " << maxFrame << "\n"
+           << "stddev Frame: " << stddevFrame << "\n"
+           << "CpuMs" << cpuMs << "\n";
+      file.close();
+    }
+
+    ImGui::End();
+
+    // Frame Graph
+    ImGui::Begin("Frame Graph");
+
+    if (!frameHistory.empty()) {
+      ImGui::PlotLines("Frame Time (ms)", frameHistory.data(),
+                       frameHistory.size(), 0, nullptr, 0.0f, 50.0f,
+                       ImVec2(0, 150));
+    }
 
     ImGui::End();
 
@@ -155,7 +253,7 @@ int main() {
   return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this
+// process all input
 void processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, true);
