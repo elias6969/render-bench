@@ -5,9 +5,6 @@
 #include <vector>
 #include "core/Cube.h"
 
-class Shader;
-class Mesh;
-
 class NaiveRenderer : public IRenderStrategy {
 public:
   NaiveRenderer() = default;
@@ -22,8 +19,5 @@ public:
 private:
   Cube cube;
   std::vector<glm::vec3> positions;
-  Shader *shader;
-  Mesh *mesh;
-
   unsigned int drawCalls = 0;
 };

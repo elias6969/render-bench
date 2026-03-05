@@ -2,7 +2,6 @@
 #include <GLFW/glfw3.h>
 #include "renderers/NaiveRenderer.h"
 #include "core/Cube.h"
-#include "core/Shader.h"
 
 #include <glm/detail/qualifier.hpp>
 #include <glm/fwd.hpp>

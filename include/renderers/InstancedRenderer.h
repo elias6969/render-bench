@@ -5,8 +5,6 @@
 #include <vector>
 #include "core/Cube.h"
 
-class Shader;
-class Mesh;
 class Camera;
 class GLFWwindow;
 
@@ -24,10 +22,8 @@ public:
 private:
   Cube cube;
   std::vector<glm::vec3> positions;
-  Shader *shader;
-  Mesh *mesh;
   int maxObjects{0};
-  GLuint instanceVBO, instanceVAO;
+  GLuint instanceVBO;
 
   unsigned int drawCalls = 0;
 };
