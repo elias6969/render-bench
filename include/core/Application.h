@@ -8,6 +8,7 @@
 #include "core/Camera.h"
 #include "renderers/IRenderStrategy.h"
 #include "core/GuiLayer.h"
+#include "tools/PerformanceTracker.h"
 
 class Application {
 public:
@@ -33,6 +34,7 @@ private:
   bool m_VSync = false;
 
 private:
+  PerformanceTracker perf;
   GuiLayer guilayer;
   void Init();
   void Shutdown();

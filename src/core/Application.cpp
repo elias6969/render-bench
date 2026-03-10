@@ -4,6 +4,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
 #include <iostream>
 #include <memory>
 
@@ -101,10 +102,7 @@ void Application::Update() {
 }
 
 void Application::Render() {
-  float currentFrame = glfwGetTime();
-  deltaTime = currentFrame - lastFrame;
-  lastFrame = currentFrame;
-  callbacks.processInput(m_Window, deltaTime);
+  float frameStart = glfwGetTime();
 
   glClearColor(0.1f, 0.1f, 0.5f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -131,13 +129,19 @@ void Application::Render() {
     lastRenderer = m_CurrentRendererIndex;
   }
 
-  // render stuff here
   m_Renderer->Render(m_ObjectCount, camera, m_Window);
 
-  guilayer.Render(m_ObjectCount, m_CurrentRendererIndex, m_VSync);
+  guilayer.Render(perf, m_ObjectCount, m_CurrentRendererIndex, m_VSync);
 
   glfwSwapBuffers(m_Window);
+  glFinish();
   glfwPollEvents();
+
+  float frameEnd = glfwGetTime();
+  float frameTimeMs = (frameEnd - frameStart) * 1000.0f;
+
+  perf.AddFrame(frameTimeMs);
+  perf.Update(m_ObjectCount);
 }
 
 void Application::Run() {
