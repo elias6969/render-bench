@@ -6,6 +6,12 @@ class PerformanceTracker {
 public:
   static constexpr int HISTORY_SIZE = 120;
 
+  void SetCPUTime(float ms) { cpuFrameTime = ms; }
+  void SetGPUTime(float ms) { gpuFrameTime = ms; }
+
+  float GetCPUTime() const { return cpuFrameTime; }
+  float GetGPUTime() const { return gpuFrameTime; }
+
   void AddFrame(float frameTimeMs);
   void Update(int objectCount);
 
@@ -20,6 +26,7 @@ public:
   float GetStdDev() const { return stddevFrame; }
   float GetJitter() const { return frameJitter; }
   float GetStability() const { return pacingStability; }
+  float GetDeltaTime() const { return deltaTime; }
 
   float GetRuntime() const { return runtime; }
   int GetFrameCount() const { return frameCount; }
@@ -28,6 +35,8 @@ public:
   const float *GetFPSHistory() const { return fpsHistory.data(); }
 
 private:
+  float deltaTime;
+  float lastFrame;
   std::array<float, HISTORY_SIZE> frameHistory{};
   std::array<float, HISTORY_SIZE> fpsHistory{};
 
@@ -47,4 +56,7 @@ private:
 
   float runtime = 0.0f;
   int frameCount = 0;
+
+  float cpuFrameTime = 0.0f;
+  float gpuFrameTime = 0.0f;
 };

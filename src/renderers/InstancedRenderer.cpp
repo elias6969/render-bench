@@ -53,7 +53,7 @@ void InstancedRenderer::Init() {
   glBindVertexArray(0);
   cube.shader.LoadShaders((EngineConfig::ShaderDirectory + "instancecube.vs").c_str(),
                      (EngineConfig::ShaderDirectory + "basiccube.fs").c_str());
-  std::cout << "Swith to Naive\n";
+  std::cout << "Swith to Instanced\n";
 }
 
 void InstancedRenderer::Render(int objectCount, Camera &camera,

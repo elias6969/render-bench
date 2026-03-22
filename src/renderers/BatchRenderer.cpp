@@ -19,7 +19,7 @@ void BatchRenderer::Init() {
   std::mt19937 rng(42);
   std::uniform_real_distribution<float> dist(-10.0f, 10.0f);
 
-  // Build ALL cubes into one big buffer
+  // Build all cubes into one big buffer
   for (int i = 0; i < maxObjects; i++) {
     glm::vec3 position(dist(rng), dist(rng), dist(rng));
     glm::mat4 model = glm::translate(glm::mat4(1.0f), position);
@@ -80,7 +80,7 @@ void BatchRenderer::Init() {
 
   glBindVertexArray(0);
   cube.texture = TextureLoader::loadTexture(
-      (EngineConfig::TextureDirectory + "test1.jpg").c_str(), false);
+      (EngineConfig::TextureDirectory + "rad.jpeg").c_str(), false);
 
   shader.LoadShaders((EngineConfig::ShaderDirectory + "batchcube.vs").c_str(),
                      (EngineConfig::ShaderDirectory + "basiccube.fs").c_str());

@@ -1,5 +1,6 @@
 #include "tools/PerformanceTracker.h"
 
+#include <GLFW/glfw3.h>
 #include <algorithm>
 #include <cmath>
 #include <imgui.h>
@@ -14,6 +15,10 @@ void PerformanceTracker::AddFrame(float frameTimeMs) {
 }
 
 void PerformanceTracker::Update(int objectCount) {
+  float currentFrame = static_cast<float>(glfwGetTime());
+
+  deltaTime = currentFrame - lastFrame;
+  lastFrame = currentFrame;
   avgFrame = std::accumulate(frameHistory.begin(), frameHistory.end(), 0.0f) /
              HISTORY_SIZE;
 

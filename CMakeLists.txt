@@ -75,6 +75,7 @@ target_include_directories(Engine PRIVATE
     include
     external
     external/glm
+    external/CSVWriter/include
 )
 
 target_link_libraries(Engine PRIVATE
