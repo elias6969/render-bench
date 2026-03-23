@@ -34,6 +34,10 @@ private:
   bool m_VSync = false;
 
 private:
+  bool isNaive{true};
+  int drawCall{0};
+  GLuint64 time;
+  GLuint gpuQuery;
   PerformanceTracker perf;
   GuiLayer guilayer;
   void Init();

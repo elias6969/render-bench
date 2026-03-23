@@ -82,7 +82,7 @@ void Cube::loadCube() {
                         (void *)(6 * sizeof(float)));
   glEnableVertexAttribArray(2);
 
-  int width, height, nrChannels;
+  /**int width, height, nrChannels;
   unsigned char *data =
       stbi_load((EngineConfig::TextureDirectory + "test1.jpg").c_str(), &width,
                 &height, &nrChannels, 0);
@@ -104,7 +104,8 @@ void Cube::loadCube() {
     glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
                  GL_UNSIGNED_BYTE, data);
   }
-  stbi_image_free(data);
+  stbi_image_free(data);**/
+  texture = TextureLoader::loadTexture((EngineConfig::TextureDirectory + "rad.jpeg").c_str());
   shader.LoadShaders((EngineConfig::ShaderDirectory + "basiccube.vs").c_str(),
                      (EngineConfig::ShaderDirectory + "basiccube.fs").c_str());
 }
