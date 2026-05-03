@@ -1,4 +1,4 @@
-# gl-bench
+# render-bench
 
 A small C++23 benchmark application that compares three rendering strategies in
 modern OpenGL on the same scene of textured cubes:
