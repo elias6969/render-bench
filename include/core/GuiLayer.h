@@ -34,7 +34,7 @@ private:
   float accumGPU = 0.0f;
   int sampleCount = 0;
   int currentStep = 0;
-  const int totalSteps = 120; // resolution (higher = smoother graphs)
+  const int totalSteps = 120;
 
 public:
   void Init(GLFWwindow *window);
@@ -42,5 +42,9 @@ public:
   void Render(PerformanceTracker &perf, int &objectCount, int &rendererIndex,
               bool &vsync);
 
+
+  void BeginFrame();
+  void RunBenchmark(PerformanceTracker& perf, int& objectCount, int& rendererIndex);
+  void EndFrame(GLFWwindow* window);
   void Shutdown();
 };

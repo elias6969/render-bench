@@ -4,20 +4,20 @@ import matplotlib.pyplot as plt
 # Load
 df = pd.read_csv("build/benchmark.csv", sep=';')
 
-# -------- Clean / group data --------
+# Clean / group data
 df_clean = df.groupby(["renderer", "object_count"], as_index=False).mean()
 
 # Optional: sort
 df_clean = df_clean.sort_values("object_count")
 
-# -------- Renderer names --------
+# Renderer names
 renderer_map = {
     0: "Naive",
     1: "Instanced",
     2: "Batch"
 }
 
-# -------- Graph 1: FPS vs Object Count --------
+# Graph 1: FPS vs Object Count
 plt.figure()
 
 for renderer, group in df_clean.groupby("renderer"):
@@ -33,7 +33,7 @@ plt.grid()
 plt.tight_layout()
 plt.show()
 
-# -------- Graph 2: Frame Time vs Object Count --------
+# Graph 2: Frame Time vs Object Count
 plt.figure()
 
 for renderer, group in df_clean.groupby("renderer"):
@@ -49,7 +49,7 @@ plt.grid()
 plt.tight_layout()
 plt.show()
 
-# -------- Graph 3: CPU vs GPU --------
+# Graph 3: CPU vs GPU 
 plt.figure()
 
 for renderer, group in df_clean.groupby("renderer"):

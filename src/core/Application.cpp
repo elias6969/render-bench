@@ -77,7 +77,7 @@ void Application::Init() {
 
   callbacks.camera = &camera;
 
-  // Renderer 
+  // Renderer
   m_Renderer = std::make_unique<NaiveRenderer>();
   m_Renderer->Init();
 
@@ -117,6 +117,7 @@ void Application::Render() {
   glClearColor(0.1f, 0.1f, 0.5f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  guilayer.BeginFrame();
   static int lastRenderer = -1;
 
   // Switch renderer
@@ -161,15 +162,27 @@ void Application::Render() {
   float cpuTimeMs =
       std::chrono::duration<float, std::milli>(cpuEnd - cpuStart).count();
 
-  // GPU time
+  // ---- GPU TIME ----
+
+  // Read previous frame (blocking, but correct)
   GLuint64 gpuTimeNs = 0;
   glGetQueryObjectui64v(gpuQuery, GL_QUERY_RESULT, &gpuTimeNs);
 
+  // Start new query
+  glBeginQuery(GL_TIME_ELAPSED, gpuQuery);
+
+  // ---- RENDER (ONLY ONCE!) ----
+  m_Renderer->Render(m_ObjectCount, camera, m_Window);
+
+  // End query
+  glEndQuery(GL_TIME_ELAPSED);
+
+  // Convert
   float gpuTimeMs = gpuTimeNs / 1000000.0f;
 
   // GUI
   guilayer.Render(perf, m_ObjectCount, m_CurrentRendererIndex, m_VSync);
-
+  guilayer.EndFrame(m_Window);
   glfwSwapBuffers(m_Window);
   glfwPollEvents();
 

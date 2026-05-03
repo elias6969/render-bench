@@ -1,5 +1,8 @@
 #include "core/GuiLayer.h"
+#include "tools/EngineConfig.h"
 #include "tools/PerformanceTracker.h"
+
+#include "imguiThemes.h"
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -7,55 +10,62 @@
 
 #include <CSVWriter.h>
 
+#include <glm/detail/qualifier.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 static const char *rendererNames[] = {"Naive", "Instanced", "Batch"};
 
+// INIT
 void GuiLayer::Init(GLFWwindow *window) {
+#if REMOVE_IMGUI == 0
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
 
-  ImGuiIO &io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  imguiThemes::green();
 
-  ImGui::StyleColorsDark();
+  ImGuiIO &io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+  io.FontGlobalScale = 1.0f;
+
+  ImGuiStyle &style = ImGui::GetStyle();
+  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    style.Colors[ImGuiCol_WindowBg].w = 0.0f;
+    style.Colors[ImGuiCol_DockingEmptyBg].w = 0.0f;
+  }
 
   ImGui_ImplGlfw_InitForOpenGL(window, true);
-  ImGui_ImplOpenGL3_Init("#version 420");
+  ImGui_ImplOpenGL3_Init("#version 330");
+#endif
+
+  // Benchmark defaults
   benchmarkRenderer = 0;
-  currentStep = 0;
   benchmarkObject = 1;
+  currentStep = 0;
 }
 
-void GuiLayer::Render(PerformanceTracker &perf, int &objectCount,
-                      int &rendererIndex, bool &vsync) {
+// FRAME BEGIN
+void GuiLayer::BeginFrame() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  ImGuiWindowFlags window_flags =
-      ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking |
-      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
-      ImGuiWindowFlags_NoBackground;
+  ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+}
 
-  ImGuiViewport *viewport = ImGui::GetMainViewport();
-
-  ImGui::SetNextWindowPos(viewport->Pos);
-  ImGui::SetNextWindowSize(viewport->Size);
-  ImGui::SetNextWindowViewport(viewport->ID);
-
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-  ImGui::Begin("MainDockSpace", nullptr, window_flags);
-  ImGui::PopStyleVar(2);
-
-  ImGuiID dockspace_id = ImGui::GetID("MainDockSpaceID");
-  ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f),
-                   ImGuiDockNodeFlags_PassthruCentralNode);
-
+// MAIN UI
+void GuiLayer::Render(PerformanceTracker &perf, int &objectCount,
+                      int &rendererIndex, bool &vsync) {
+  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
   ImGui::Begin("Benchmark");
 
+  // Controls
   ImGui::SliderInt("Object Count", &objectCount, 1, 50000);
 
   ImGui::Combo("Renderer", &rendererIndex, rendererNames,
@@ -68,8 +78,7 @@ void GuiLayer::Render(PerformanceTracker &perf, int &objectCount,
 
   ImGui::Separator();
 
-  // Frame Statistics 
-
+  // Frame Stats
   ImGui::Text("CPU Frame Time: %.3f ms", perf.GetCPUTime());
   ImGui::Text("GPU Frame Time: %.3f ms", perf.GetGPUTime());
   ImGui::Text("FPS: %.1f", perf.GetFPS());
@@ -86,13 +95,11 @@ void GuiLayer::Render(PerformanceTracker &perf, int &objectCount,
 
   ImGui::Text("StdDev: %.3f ms", perf.GetStdDev());
   ImGui::Text("Jitter: %.3f ms", perf.GetJitter());
-
   ImGui::Text("Frame Stability: %.1f%%", perf.GetStability());
 
   ImGui::Separator();
 
   // Throughput
-
   float objectsPerSecond = objectCount * perf.GetAvgFPS();
 
   ImGui::Text("Objects: %d", objectCount);
@@ -102,24 +109,20 @@ void GuiLayer::Render(PerformanceTracker &perf, int &objectCount,
   ImGui::Separator();
 
   // Runtime
-
   ImGui::Text("Runtime: %.1f sec", perf.GetRuntime());
   ImGui::Text("Frames: %d", perf.GetFrameCount());
 
   ImGui::Separator();
 
   // Graphs
-
   ImGui::PlotLines("Frame Time (ms)", perf.GetFrameHistory(),
                    PerformanceTracker::HISTORY_SIZE);
-
   ImGui::PlotLines("FPS", perf.GetFPSHistory(),
                    PerformanceTracker::HISTORY_SIZE);
 
   ImGui::Separator();
 
   // ImGui Stats
-
   ImGuiIO &io = ImGui::GetIO();
 
   ImGui::Text("ImGui Vertices: %d", io.MetricsRenderVertices);
@@ -128,6 +131,7 @@ void GuiLayer::Render(PerformanceTracker &perf, int &objectCount,
 
   ImGui::Separator();
 
+  // Benchmark Controls
   if (ImGui::Button("Run Benchmark")) {
     benchmark = true;
     benchmarkStarted = false;
@@ -138,9 +142,18 @@ void GuiLayer::Render(PerformanceTracker &perf, int &objectCount,
     csv.writeToFile("benchmark.csv");
   }
 
-  // Benchmark System
+  RunBenchmark(perf, objectCount, rendererIndex);
+  ImGui::PopStyleColor();
+  ImGui::End();
+}
 
-  if (benchmark && !benchmarkStarted) {
+// BENCHMARK SYSTEM
+void GuiLayer::RunBenchmark(PerformanceTracker &perf, int &objectCount,
+                            int &rendererIndex) {
+  if (!benchmark)
+    return;
+
+  if (!benchmarkStarted) {
     csv.resetContent();
 
     csv.newRow() << "object_count"
@@ -153,6 +166,7 @@ void GuiLayer::Render(PerformanceTracker &perf, int &objectCount,
 
     benchmarkRenderer = 0;
     benchmarkObject = 1;
+    currentStep = 0;
 
     benchmarkTimer = 0.0f;
     measureTimer = 0.0f;
@@ -160,68 +174,79 @@ void GuiLayer::Render(PerformanceTracker &perf, int &objectCount,
     benchmarkStarted = true;
   }
 
-  if (benchmark) {
-    float dt = perf.GetDeltaTime();
+  float dt = perf.GetDeltaTime();
 
-    // Force renderer + object count
-    rendererIndex = benchmarkRenderer;
-    objectCount = benchmarkObject;
+  rendererIndex = benchmarkRenderer;
+  objectCount = benchmarkObject;
 
-    benchmarkTimer += dt;
+  benchmarkTimer += dt;
 
-    // Warmup phase
-    if (benchmarkTimer < warmupTime) {
-      // do nothing, just stabilize
-    } else {
-      // Measurement phase
-      measureTimer += dt;
+  // Warmup
+  if (benchmarkTimer < warmupTime)
+    return;
 
-      accumFPS += perf.GetFPS();
-      accumCPU += perf.GetCPUTime();
-      accumGPU += perf.GetGPUTime();
-      sampleCount++;
+  // Measurement
+  measureTimer += dt;
 
-      if (measureTimer >= measureTime) {
-        // Save averaged result
-        csv.newRow() << objectCount << (accumFPS / sampleCount)
-                     << perf.GetAvgFrame() << (accumCPU / sampleCount)
-                     << (accumGPU / sampleCount) << rendererIndex << drawCalls;
+  accumFPS += perf.GetFPS();
+  accumCPU += perf.GetCPUTime();
+  accumGPU += perf.GetGPUTime();
+  sampleCount++;
 
-        // Reset accumulators
-        accumFPS = accumCPU = accumGPU = 0.0f;
-        sampleCount = 0;
+  if (measureTimer < measureTime)
+    return;
 
-        measureTimer = 0.0f;
-        benchmarkTimer = 0.0f;
+  // Save result
+  csv.newRow() << objectCount << (accumFPS / sampleCount) << perf.GetAvgFrame()
+               << (accumCPU / sampleCount) << (accumGPU / sampleCount)
+               << rendererIndex << drawCalls;
 
-        currentStep++;
+  // Reset
+  accumFPS = accumCPU = accumGPU = 0.0f;
+  sampleCount = 0;
 
-        if (currentStep >= totalSteps) {
-          // next renderer
-          currentStep = 0;
-          benchmarkRenderer++;
+  measureTimer = 0.0f;
+  benchmarkTimer = 0.0f;
 
-          if (benchmarkRenderer > 2) {
-            benchmark = false;
-            csv.writeToFile("benchmark.csv");
-            std::cout << "Benchmark complete!\n";
-            return;
-          }
-        }
+  currentStep++;
 
-        float t = (float)currentStep / (float)(totalSteps - 1);
-        benchmarkObject = 1 + t * (50000 - 1);
-      }
+  if (currentStep >= totalSteps) {
+    currentStep = 0;
+    benchmarkRenderer++;
+
+    if (benchmarkRenderer > 2) {
+      benchmark = false;
+      csv.writeToFile("benchmark.csv");
+      std::cout << "Benchmark complete!\n";
+      return;
     }
   }
 
-  ImGui::End();
-  ImGui::End();
-
-  ImGui::Render();
-  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  float t = (float)currentStep / (float)(totalSteps - 1);
+  benchmarkObject = 1 + t * (50000 - 1);
 }
 
+// FRAME END
+void GuiLayer::EndFrame(GLFWwindow *window) {
+  ImGui::Render();
+
+  int w, h;
+  glfwGetFramebufferSize(window, &w, &h);
+  glViewport(0, 0, w, h);
+
+  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+  ImGuiIO &io = ImGui::GetIO();
+
+  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    GLFWwindow *backup = glfwGetCurrentContext();
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+    glfwMakeContextCurrent(backup);
+  }
+}
+
+// SHUTDOWN
 void GuiLayer::Shutdown() {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
