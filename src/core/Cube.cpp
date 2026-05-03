@@ -110,6 +110,12 @@ void Cube::loadCube() {
                      (EngineConfig::ShaderDirectory + "basiccube.fs").c_str());
 }
 
+void Cube::drawRaw()
+{
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+}
+
 void Cube::render(Camera &camera, GLFWwindow *window) {
   shader.use();
 

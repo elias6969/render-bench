@@ -22,6 +22,7 @@ public:
 
   void loadCube();
   void render(Camera &camera, GLFWwindow *window);
+  void drawRaw();
   ~Cube();
 
   GLuint VAO, VBO, texture;

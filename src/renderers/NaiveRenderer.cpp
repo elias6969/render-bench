@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include "renderers/NaiveRenderer.h"
 #include "core/Cube.h"
+#include "tools/EngineConfig.h"
 
 #include <glm/detail/qualifier.hpp>
 #include <glm/fwd.hpp>
@@ -30,11 +31,33 @@ void NaiveRenderer::Init()
 
 void NaiveRenderer::Render(int objectCount, Camera& camera, GLFWwindow *window) 
 {
-  //Render here
-  for (int i = 0; i < objectCount && i < positions.size(); i++) {
-    cube.Position = positions[i];
-    cube.render(camera, window);
-  }
+    cube.shader.use();
+
+    glm::mat4 projection = glm::perspective(
+        glm::radians(camera.Zoom),
+        (float)EngineConfig::WindowWidth / (float)EngineConfig::WindowHeight,
+        0.1f, 100.0f
+    );
+
+    glm::mat4 view = camera.GetViewMatrix();
+
+    cube.shader.setUniform("projection", projection);
+    cube.shader.setUniform("view", view);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cube.texture);
+    cube.shader.setUniform("diffuseTex", 0);
+
+    glBindVertexArray(cube.VAO);
+
+    for (int i = 0; i < objectCount && i < positions.size(); i++) {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, positions[i]);
+
+        cube.shader.setUniform("model", model);
+
+        cube.drawRaw();
+    }
 }
 
 void NaiveRenderer::Cleanup() 
